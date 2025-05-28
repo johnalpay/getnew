@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FB Token Getter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <style>
+    html[data-theme='dark'] {
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+    html[data-theme='dark'] textarea, html[data-theme='dark'] input {
+      background-color: #1e293b;
+      color: #f8fafc;
+    }
+    .fade-in {
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .glass {
+      backdrop-filter: blur(12px);
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white font-sans transition-all duration-300">
+  <div class="max-w-3xl mx-auto p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-4xl font-bold tracking-wide drop-shadow">🪙 FB Token Getter</h1>
+      <button id="toggleTheme" class="bg-white text-black dark:bg-gray-800 dark:text-white px-4 py-2 rounded hover:scale-105 transition">
+        Toggle Theme
+      </button>
+    </div>
+
+    <form id="tokenForm" class="bg-white/10 p-6 rounded-xl shadow-xl glass space-y-4 fade-in" autocomplete="off">
+      <label for="cookie" class="block text-lg font-medium">Enter Facebook Cookie:</label>
+      <input
+        type="text"
+        id="cookie"
+        placeholder="Your Facebook cookie here..."
+        class="w-full p-3 rounded-lg border border-white/20 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-pink-400"
+      />
+      <button
+        type="submit"
+        class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition transform hover:scale-105"
+      >
+         Get Token
+      </button>
+    </form>
+
+    <div id="result" class="space-y-6 mt-8"></div>
+  </div>
+
+  <div id="toast-container" class="fixed bottom-6 right-6 space-y-2 z-50"></div>
+
+  <script>
+    const form = document.getElementById("tokenForm");
+    const resultDiv = document.getElementById("result");
+    const themeToggle = document.getElementById("toggleTheme");
+
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+
+    themeToggle.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("theme", next);
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      resultDiv.innerHTML = '<p class="text-sm text-white/70">⏳ Fetching token...</p>';
+      const cookie = form.cookie.value.trim();
+
+      const url = cookie ? `/api/get-token?cookie=${encodeURIComponent(cookie)}` : '/api/get-token';
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.innerHTML = "";
+
+          for (const key in data) {
+            if (data[key]?.token) {
+              const token = data[key].token;
+              const name = data[key].name || key;
+              const tokenId = `token-${key}`;
+              const qrId = `qr-${key}`;
+
+              const tokenBlock = document.createElement("div");
+              tokenBlock.className = "fade-in p-6 bg-white/10 rounded-xl shadow-md glass";
+
+              tokenBlock.innerHTML = `
+                <h3 class="text-xl font-semibold mb-2">${name}</h3>
+                <textarea readonly id="${tokenId}" class="w-full p-3 rounded bg-black/40 text-white mb-4">${token}</textarea>
+                <div class="flex gap-2 flex-wrap">
+                  <button onclick="copyToken('${tokenId}')" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded text-white">📋 Copy</button>
+                  <button onclick="toggleQR('${tokenId}', '${qrId}')" class="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded text-white">🔳 QR</button>
+                </div>
+                <canvas id="${qrId}" class="mt-4 hidden"></canvas>
+              `;
+
+              resultDiv.appendChild(tokenBlock);
+            }
+          }
+        } else {
+          resultDiv.innerHTML = `<p class="text-red-400">❌ Failed to get token. Please check your cookie or try again.</p>`;
+        }
+      } catch (err) {
+        resultDiv.innerHTML = `<p class="text-red-400">⚠️ Error: ${err.message}</p>`;
+      }
+    });
+
+    function copyToken(id) {
+      const textarea = document.getElementById(id);
+      textarea.select();
+      navigator.clipboard.writeText(textarea.value)
+        .then(() => showToast("Token copied!", "success"))
+        .catch(() => showToast("Failed to copy!", "error"));
+    }
+
+    function toggleQR(tokenId, qrId) {
+      const token = document.getElementById(tokenId).value;
+      const canvas = document.getElementById(qrId);
+      if (canvas.classList.contains("hidden")) {
+        QRCode.toCanvas(canvas, token, { width: 200 });
+        canvas.classList.remove("hidden");
+      } else {
+        canvas.classList.add("hidden");
+      }
+    }
+
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `px-4 py-3 rounded shadow text-white fade-in ${
+        type === "error" ? "bg-red-600" : "bg-green-600"
+      }`;
+      toast.textContent = message;
+      const container = document.getElementById("toast-container");
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add("opacity-0");
+        setTimeout(() => toast.remove(), 500);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
