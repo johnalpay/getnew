@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FB Token Getter</title>
+  <title>Facebook Token Getter</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <style>
@@ -31,7 +31,7 @@
 <body class="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white font-sans transition-all duration-300">
   <div class="max-w-3xl mx-auto p-6">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-4xl font-bold tracking-wide drop-shadow">🪙 FB Token Getter</h1>
+      <h1 class="text-2xl font-bold tracking-wide drop-shadow">🪙 FB Token Getter</h1>
       <button id="toggleTheme" class="bg-white text-black dark:bg-gray-800 dark:text-white px-4 py-2 rounded hover:scale-105 transition">
         Toggle Theme
       </button>
@@ -44,18 +44,28 @@
         id="cookie"
         placeholder="Your Facebook cookie here..."
         class="w-full p-3 rounded-lg border border-white/20 bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-pink-400"
+        required
       />
       <button
         type="submit"
         class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition transform hover:scale-105"
       >
-         Get Token
+        🪙 Get Token
       </button>
     </form>
 
     <div id="result" class="space-y-6 mt-8"></div>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-center text-white/80 text-sm fade-in">
+      📌 Follow 
+      <a href="https://www.facebook.com/profile.php?id=61576955932718" target="_blank" class="underline hover:text-pink-300">
+        Sxe Ci
+      </a>
+    </footer>
   </div>
 
+  <!-- Toast container -->
   <div id="toast-container" class="fixed bottom-6 right-6 space-y-2 z-50"></div>
 
   <script>
@@ -76,12 +86,12 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       resultDiv.innerHTML = '<p class="text-sm text-white/70">⏳ Fetching token...</p>';
-      const cookie = form.cookie.value.trim();
 
-      const url = cookie ? `/api/get-token?cookie=${encodeURIComponent(cookie)}` : '/api/get-token';
+      const cookie = form.cookie.value.trim();
+      if (!cookie) return;
 
       try {
-        const response = await fetch(url);
+        const response = await fetch(`/api/get-token?cookie=${encodeURIComponent(cookie)}`);
         const data = await response.json();
 
         if (data.success) {
@@ -122,8 +132,8 @@
       const textarea = document.getElementById(id);
       textarea.select();
       navigator.clipboard.writeText(textarea.value)
-        .then(() => showToast("Token copied!", "success"))
-        .catch(() => showToast("Failed to copy!", "error"));
+        .then(() => showToast("Token copied to clipboard!", "success"))
+        .catch(() => showToast("Failed to copy token!", "error"));
     }
 
     function toggleQR(tokenId, qrId) {
@@ -143,6 +153,7 @@
         type === "error" ? "bg-red-600" : "bg-green-600"
       }`;
       toast.textContent = message;
+
       const container = document.getElementById("toast-container");
       container.appendChild(toast);
 
