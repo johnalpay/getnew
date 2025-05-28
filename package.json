@@ -2,8 +2,8 @@
   "name": "fb-token-getter",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {},
   "dependencies": {
-    "node-fetch": "^2.6.12",
-    "cookie": "^0.5.0"
+    "node-fetch": "^2.6.12"
   }
 }
